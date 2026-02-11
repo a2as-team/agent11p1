@@ -1,0 +1,133 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: srinivasankh/agent11p1
+    source: https://github.com/srinivasankh/agent11p1
+    branch: main
+    commit: "e690ce61"
+    scope: [agent_11plus_app/agent.py, agent_11plus_app/coordinator_agent.py, agent_11plus_app/maths_agent.py, agent_11plus_app/validator_agent.py,
+      agent_11plus_app/vocab_agent.py, memory_callbacks.py, settings.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:53:50Z'
+    url: https://a2as.org/certified/agents/srinivasankh/agent11p1
+  signatures:
+    digest: sha256:1B-o36Ez1abNAKHTMpwmCA9xxu9JA2amh94keZWI6og
+    key: ed25519:uI78mmP1zor8qJAEcNWQ5ehq0xAW4OeAKzZUH1kOU80
+    sig: ed25519:93ECkEIF1J_8RBP4HNMc1kLLLyx0gXZStV5GEJRYrWBrDrC938i2MTlgmZ1jNKY4-7WL3lsvvnRNCbyVPsCqDg
+
+agents:
+  agent.build_maths_agent:
+    type: factory
+    models: [gemini-2.0-flash-exp]
+    params:
+      name: MathsAgent
+      instruction: instruction.strip()
+      function: build_maths_agent
+  agent.build_validator_agent:
+    type: factory
+    models: [gemini-2.0-flash-exp]
+    params:
+      name: ValidatorAgent
+      instruction: instruction.strip()
+      function: build_validator_agent
+  agent.build_vocab_agent:
+    type: factory
+    models: [gemini-2.0-flash-exp]
+    params:
+      name: VocabularyAgent
+      instruction: instruction.strip()
+      function: build_vocab_agent
+  root_agent:
+    type: instance
+    models: [gemini-2.0-flash-exp]
+    tools: [preload_memory, vocab, maths, validator]
+    params:
+      name: CoordinatorAgent
+      instruction: instruction.strip()
+      after_agent_callback: auto_save_to_memory
+      function: build_coordinator_agent
+
+models:
+  gemini-2.0-flash-exp:
+    type: literal
+    agents: [agent.build_vocab_agent, agent.build_maths_agent, agent.build_validator_agent, root_agent]
+
+tools:
+  maths:
+    type: agent
+    agents: [build_maths_agent, root_agent]
+    params:
+      wrapper: AgentTool
+      agent: build_maths_agent
+  preload_memory:
+    type: function
+    agents: [root_agent]
+  validator:
+    type: agent
+    agents: [build_validator_agent, root_agent]
+    params:
+      wrapper: AgentTool
+      agent: build_validator_agent
+  vocab:
+    type: agent
+    agents: [build_vocab_agent, root_agent]
+    params:
+      wrapper: AgentTool
+      agent: build_vocab_agent
+
+imports:
+  AgentTool: google.adk.tools.agent_tool.AgentTool
+  App: google.adk.apps.App
+  APP_NAME: settings.APP_NAME
+  asyncio: asyncio
+  auto_save_to_memory: memory_callbacks.auto_save_to_memory
+  build_coordinator_agent: coordinator_agent.build_coordinator_agent
+  build_maths_agent: maths_agent.build_maths_agent
+  build_validator_agent: validator_agent.build_validator_agent
+  build_vocab_agent: vocab_agent.build_vocab_agent
+  datetime: datetime
+  DEFAULT_USER_ID: settings.DEFAULT_USER_ID
+  Gemini: google.adk.models.google_llm.Gemini
+  InMemoryMemoryService: google.adk.memory.InMemoryMemoryService
+  InMemorySessionService: google.adk.sessions.InMemorySessionService
+  LlmAgent: google.adk.agents.LlmAgent
+  load_dotenv: dotenv.load_dotenv
+  logging: logging
+  MODEL_NAME: settings.MODEL_NAME
+  preload_memory: google.adk.tools.preload_memory_tool.preload_memory_tool
+  Runner: google.adk.runners.Runner
+  types: google.genai.types
+
+functions:
+  auto_save_to_memory:
+    type: async
+    module: memory_callbacks
+    args: [callback_context]
+  build_coordinator_agent:
+    type: sync
+    module: agent_11plus_app.coordinator_agent
+    params:
+      returns: LlmAgent
+  build_maths_agent:
+    type: sync
+    module: agent_11plus_app.maths_agent
+    params:
+      returns: LlmAgent
+  build_runner:
+    type: sync
+    module: main
+  build_validator_agent:
+    type: sync
+    module: agent_11plus_app.validator_agent
+    params:
+      returns: LlmAgent
+  build_vocab_agent:
+    type: sync
+    module: agent_11plus_app.vocab_agent
+    params:
+      returns: LlmAgent
+  chat_loop:
+    type: async
+    module: main
